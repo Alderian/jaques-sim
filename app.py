@@ -1,40 +1,81 @@
 import streamlit as st
 import time
 
-st.set_page_config(page_title="Jaques - Agente IA Financiero", page_icon="🤖")
+st.set_page_config(page_title="Jaques Dev API – POC", page_icon="💻")
+st.title("💻 Jaques Dev – Generador de Código para Bind API")
 
-st.title("🤖 Jaques – Agente Financiero Simulado")
+with st.expander("📄 Ejemplos de prompts útiles"):
+    st.code("""
+Hey Jaques, generá código para transferir 10 ARS desde mi cuenta a AliasPrueba1234.
+Hey Jaques, generá código para consultar el estado de una transferencia.
+    """, language="text")
 
-cmd = st.text_input("🗣️ Escribí tu comando (por ejemplo: 'Jaques, separá en un fondo T0...')")
+prompt = st.text_input("🗣️ Pedile algo a Jaques (ej. 'transferir fondos')")
 
-if cmd:
-    st.write(f"**Usuario:** {cmd}")
-    with st.spinner("🧠 Jaques está pensando..."):
+if prompt:
+    st.write(f"**Usuario:** {prompt}")
+    with st.spinner("🧠 Jaques está escribiendo..."):
         time.sleep(2)
 
-        if "separa en un fondo t0" in cmd.lower():
-            pagos = {"Luz": 5000, "Agua": 3000, "Internet": 2000}
-            total_estimado = sum(pagos.values()) * 1.08  # inflación estimada
-            saldo = 20000
+        if "transferir" in prompt.lower():
+            st.subheader("✅ Código generado: Transferencia con Bind API")
+            code = '''
+import requests
 
-            st.write("🔍 Servicios próximos a vencer detectados:")
-            st.write(pagos)
-            st.write(f"📈 Total estimado con inflación: ${total_estimado:.0f}")
-            st.write(f"💰 Saldo disponible: ${saldo}")
+# 1. Autenticación (login JWT)
+url_login = "https://sandbox.bind.com.ar/v1/login/jwt"
+payload_login = {
+    "username": "user",
+    "password": "XXXXX"
+}
+resp = requests.post(url_login, json=payload_login)
+token = resp.json()["token"]
+headers = {"Authorization": f"JWT {token}"}
 
-            if saldo >= total_estimado:
-                st.success(f"✅ Suscribiendo ${total_estimado:.0f} al fondo T0...")
-                comprobante = f"Suscripción fondo T0 por ${total_estimado:.0f}\nDetalle: {pagos}"
-                st.download_button("⬇️ Descargar comprobante", data=comprobante, file_name="comprobante_t0.txt")
-            else:
-                st.warning("⚠️ No hay saldo suficiente para cubrir los servicios.")
-        
-        elif "pagos los servicios de luz" in cmd.lower():
-            vencimientos = {"Luz": "2025-06-20", "Agua": "2025-06-25", "Internet": "2025-07-01"}
-            st.write("📅 Alarmas programadas para estos vencimientos:")
-            st.write(vencimientos)
-            st.success("✅ Se programó el rescate automático del FCI T0 y posterior pago.")
-            st.download_button("⬇️ Descargar resumen de alarmas", data=str(vencimientos), file_name="alarmas_pagos.json")
-        
+# 2. Transferencia de fondos
+bank_id = 322
+account_id = "21-1-99999-4-6"
+view_id = "owner"
+url_transfer = f"https://sandbox.bind.com.ar/v1/banks/{bank_id}/accounts/{account_id}/{view_id}/transaction-request-types/TRANSFER/transaction-requests"
+
+transfer_payload = {
+    "origin_id": "55789",
+    "to": {"label": "AliasPrueba1234"},
+    "value": {"currency": "ARS", "amount": 10},
+    "description": "COMPLETE_TRANS",
+    "concept": "VAR",
+    "emails": ["apibank@poincenot.com"]
+}
+resp_tx = requests.post(url_transfer, json=transfer_payload, headers=headers)
+tx_id = resp_tx.json().get("id")
+
+# 3. Consultar estado de la transferencia
+url_status = f"https://sandbox.bind.com.ar/v1/banks/{bank_id}/accounts/{account_id}/{view_id}/transaction-request-types/TRANSFER/{tx_id}"
+resp_status = requests.get(url_status, headers=headers)
+print("Estado:", resp_status.json().get("status"))
+'''
+            st.code(code, language="python")
+            st.download_button("⬇️ Descargar script Python", data=code, file_name="jaques_bind_transfer.py")
+
+        elif "estado" in prompt.lower():
+            st.subheader("📄 Código generado: Consulta de estado de transferencia")
+            code = '''
+import requests
+
+# Suponiendo que ya tenés el token
+headers = {"Authorization": "JWT TU_TOKEN"}
+
+bank_id = 322
+account_id = "21-1-99999-4-6"
+view_id = "owner"
+tx_id = "ID_DE_LA_TRANSFERENCIA"
+
+url_status = f"https://sandbox.bind.com.ar/v1/banks/{bank_id}/accounts/{account_id}/{view_id}/transaction-request-types/TRANSFER/{tx_id}"
+resp = requests.get(url_status, headers=headers)
+print(resp.json())
+'''
+            st.code(code, language="python")
+            st.download_button("⬇️ Descargar script Python", data=code, file_name="jaques_bind_status.py")
+
         else:
-            st.error("🤖 Jaques todavía no sabe cómo hacer eso. ¡Seguimos entrenándolo!")
+            st.warning("🤖 Jaques todavía no está preparado para esa petición.")
